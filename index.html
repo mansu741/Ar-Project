@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar-threex.js"></script>
+</head>
+
+<body style="margin:0; overflow:hidden;">
+
+<script>
+
+let scene, camera, renderer;
+let markerRoot, arToolkitSource, arToolkitContext;
+
+init();
+animate();
+
+function init() {
+
+  scene = new THREE.Scene();
+
+  camera = new THREE.Camera();
+  scene.add(camera);
+
+  //조명
+  // --- ADD LIGHT ---
+  const ambientLight = new THREE.AmbientLight(0xffffff, 3.0);
+  scene.add(ambientLight);
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 3.0);
+  directionalLight.position.set(1, 1, 1).normalize();
+  scene.add(directionalLight);
+
+
+  renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  document.body.appendChild(renderer.domElement);
+
+  arToolkitSource = new THREEx.ArToolkitSource({
+    sourceType: 'webcam'
+  });
+
+  arToolkitSource.init(function(){
+    setTimeout(() => onResize(), 2000);
+  });
+
+  window.addEventListener('resize', () => onResize());
+
+  function onResize(){
+    arToolkitSource.onResize();
+    arToolkitSource.copySizeTo(renderer.domElement);
+    if (arToolkitContext.arController !== null){
+      arToolkitSource.copySizeTo(arToolkitContext.arController.canvas)
+    }
+  }
+
+  arToolkitContext = new THREEx.ArToolkitContext({
+    cameraParametersUrl: './camera_para.dat',  // ⭐ 로컬 파일 사용
+    detectionMode: 'mono'
+  });
+
+  arToolkitContext.init(() => {
+    camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+  });
+
+  markerRoot = new THREE.Group();
+  scene.add(markerRoot);
+
+  new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+    type: 'pattern',
+    patternUrl: './hiro.patt',
+
+  });
+
+  const loader = new THREE.GLTFLoader();
+  loader.load("./model.glb", (gltf) => {
+
+    gltf.scene.scale.set(0.02, 0.02, 0.02);
+    gltf.scene.position.set(0, 0.05, 0);
+    
+
+    gltf.scene.traverse((child) => {
+      if (child.isMesh) child.frustumCulled = false;
+    });
+
+    markerRoot.add(gltf.scene);
+
+    console.log("GLB LOADED SUCCESS");
+  });
+
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+
+  if (arToolkitSource.ready){
+    arToolkitContext.update(arToolkitSource.domElement);
+  }
+
+  renderer.render(scene, camera);
+}
+
+</script>
+
+</body>
+</html>
