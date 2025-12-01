@@ -1,28 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <meta charset="utf-8">
-
-  <!-- 가로모드처럼 보이게 강제 -->
-  <style>
-    body {
-      margin: 0;
-      background: #000;
-      overflow: hidden;
-      transform-origin: top left;
-      transform: rotate(90deg);      /* ← 세로에서도 가로모드처럼 보여줌 */
-      width: 100vh;
-      height: 100vw;
-    }
-  </style>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar-threex.js"></script>
 </head>
 
-<body>
+<body style="margin:0; overflow:hidden;">
 
 <script>
 
@@ -39,7 +23,8 @@ function init() {
   camera = new THREE.Camera();
   scene.add(camera);
 
-  // --- LIGHT ---
+  //조명
+  // --- ADD LIGHT ---
   const ambientLight = new THREE.AmbientLight(0xffffff, 3.0);
   scene.add(ambientLight);
 
@@ -47,16 +32,12 @@ function init() {
   directionalLight.position.set(1, 1, 1).normalize();
   scene.add(directionalLight);
 
-  // ---- RENDERER : 4:3 비율 강제 ----
-  const width = window.innerHeight;         // 화면을 회전시키므로 height 사용
-  const height = window.innerWidth * 0.75;  // 4:3 비율
 
   renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-  renderer.setSize(width, height);
+  renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
   document.body.appendChild(renderer.domElement);
 
-  // ---- ARToolkitSource ----
   arToolkitSource = new THREEx.ArToolkitSource({
     sourceType: 'webcam'
   });
@@ -75,33 +56,30 @@ function init() {
     }
   }
 
-  // ---- ARToolkitContext ----
   arToolkitContext = new THREEx.ArToolkitContext({
-    cameraParametersUrl: './camera_para.dat',
+    cameraParametersUrl: './camera_para.dat',  // ⭐ 로컬 파일 사용
     detectionMode: 'mono'
   });
 
   arToolkitContext.init(() => {
     camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-    camera.fov = 50;               // ← 모바일에서 너무 가까이 보이는 문제 해결
-    camera.updateProjectionMatrix();
   });
 
-  // ---- MARKER ----
   markerRoot = new THREE.Group();
   scene.add(markerRoot);
 
   new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
     type: 'pattern',
     patternUrl: './hiro.patt',
+
   });
 
-  // ---- LOAD MODEL ----
   const loader = new THREE.GLTFLoader();
   loader.load("./model.glb", (gltf) => {
 
     gltf.scene.scale.set(0.02, 0.02, 0.02);
     gltf.scene.position.set(0, 0.05, 0);
+    
 
     gltf.scene.traverse((child) => {
       if (child.isMesh) child.frustumCulled = false;
@@ -128,3 +106,7 @@ function animate(){
 
 </body>
 </html>
+
+</body>
+</html>
+
